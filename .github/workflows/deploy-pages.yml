@@ -38,10 +38,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Prepare for static export
+        run: |
+          # Temporarily move server-dependent routes (not compatible with static export)
+          # These routes require a Node.js server and won't work on GitHub Pages
+          mkdir -p .server-routes-backup
+          mv app/api .server-routes-backup/ || true
+          mv app/editor .server-routes-backup/ || true
+          mv app/upload .server-routes-backup/ || true
+          mv app/generate .server-routes-backup/ || true
+          mv app/sandbox .server-routes-backup/ || true
+
       - name: Build with Next.js
         run: pnpm run build
         env:
           NEXT_PUBLIC_BASE_PATH: ""
+
+      - name: Restore server routes
+        run: |
+          # Restore all moved routes
+          mv .server-routes-backup/api app/ || true
+          mv .server-routes-backup/editor app/ || true
+          mv .server-routes-backup/upload app/ || true
+          mv .server-routes-backup/generate app/ || true
+          mv .server-routes-backup/sandbox app/ || true
+          rm -rf .server-routes-backup
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
