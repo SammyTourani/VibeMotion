@@ -2,9 +2,33 @@ node_modules
 dist
 .DS_Store
 .env
+.env.local
+.env*.local
 
 # Ignore the output video from Git but not videos you import into src/.
 out
 .playwright-mcp/
 
 build
+
+# Transcript cache
+.cache/
+
+# Next.js build output
+.next/
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Test videos (too large for git)
+Testing Videos/
+
+# Uploaded assets (user content)
+public/assets/videos/
+public/assets/audio/
+public/assets/frames/
+public/assets/sfx/
+public/renders/
+
+# Generated compositions (runtime generated)
+src/compositions/generated/

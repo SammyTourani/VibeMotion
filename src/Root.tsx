@@ -1,5 +1,6 @@
 import "./index.css";
 import { Composition, Folder } from "remotion";
+import { z } from "zod";
 import { TitleSlide, titleSlideSchema } from "./components/TitleSlide";
 import { ContentSlide, contentSlideSchema } from "./components/ContentSlide";
 import { VideoSlide, videoSlideSchema } from "./components/VideoSlide";
@@ -10,6 +11,7 @@ import { Screenshot, screenshotSchema } from "./components/Screenshot";
 import { DiagramSlide, diagramSlideSchema } from "./components/DiagramSlide";
 import { Music, musicSchema } from "./components/Music";
 import { ZoomableVideo, zoomableVideoSchema } from "./components/ZoomableVideo";
+import { DynamicPreview } from "./compositions/dynamic-preview";
 import {
   Example1Landscape,
   Example1Square,
@@ -22,6 +24,43 @@ import {
   sampleHighlightedTypeScript,
   sampleD2Diagram,
 } from "./content";
+
+// Schema for DynamicPreview props (used for rendering)
+const dynamicPreviewSchema = z.object({
+  scenes: z.array(
+    z.object({
+      id: z.string(),
+      type: z.string(),
+      duration: z.number(),
+      description: z.string(),
+      text: z.string().optional(),
+      assets: z.array(z.string()).optional(),
+      voiceover: z.string().optional(),
+      voiceoverAudio: z.string().optional(), // Path to generated voiceover audio
+      animation: z.string().optional(),
+      order: z.number().optional(),
+    })
+  ),
+  totalDuration: z.number(),
+  theme: z.object({
+    primaryColor: z.string(),
+    secondaryColor: z.string().optional(),
+    backgroundColor: z.string(),
+    textColor: z.string(),
+    style: z.string().optional(),
+  }),
+});
+
+// Default props for DynamicPreview compositions
+const dynamicPreviewDefaultProps = {
+  scenes: [],
+  totalDuration: 30,
+  theme: {
+    primaryColor: "#8B5CF6",
+    backgroundColor: "#000000",
+    textColor: "#FFFFFF",
+  },
+};
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -43,6 +82,58 @@ export const RemotionRoot: React.FC = () => {
             <Example2Square />
           </Folder>
         </Folder>
+      </Folder>
+
+      {/* Generated video compositions - used by /api/render */}
+      <Folder name="Generated">
+        <Composition
+          id="DynamicPreview-Portrait"
+          component={DynamicPreview}
+          durationInFrames={60 * 30} // 30 seconds default, overridden by calculateMetadata
+          fps={60}
+          width={1080}
+          height={1920}
+          schema={dynamicPreviewSchema}
+          calculateMetadata={async ({ props }) => {
+            const totalDuration = props.totalDuration || 30;
+            return {
+              durationInFrames: Math.ceil(totalDuration * 60),
+            };
+          }}
+          defaultProps={dynamicPreviewDefaultProps}
+        />
+        <Composition
+          id="DynamicPreview-Landscape"
+          component={DynamicPreview}
+          durationInFrames={60 * 30}
+          fps={60}
+          width={1920}
+          height={1080}
+          schema={dynamicPreviewSchema}
+          calculateMetadata={async ({ props }) => {
+            const totalDuration = props.totalDuration || 30;
+            return {
+              durationInFrames: Math.ceil(totalDuration * 60),
+            };
+          }}
+          defaultProps={dynamicPreviewDefaultProps}
+        />
+        <Composition
+          id="DynamicPreview-Square"
+          component={DynamicPreview}
+          durationInFrames={60 * 30}
+          fps={60}
+          width={1080}
+          height={1080}
+          schema={dynamicPreviewSchema}
+          calculateMetadata={async ({ props }) => {
+            const totalDuration = props.totalDuration || 30;
+            return {
+              durationInFrames: Math.ceil(totalDuration * 60),
+            };
+          }}
+          defaultProps={dynamicPreviewDefaultProps}
+        />
       </Folder>
 
       <Folder name="Components">
