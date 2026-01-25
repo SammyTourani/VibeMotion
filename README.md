@@ -317,20 +317,23 @@ All videos render at 60fps. Available presets:
 
 ## Deployment
 
-### Deploy to Vercel (Recommended)
+### Deploy to GitHub Pages
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/SammyTourani/VibeMotion)
+This project is configured to deploy automatically via GitHub Actions.
 
-1. Click the button above or visit [vercel.com/new](https://vercel.com/new)
-2. Import your GitHub repository
-3. Add environment variables in the Vercel dashboard
-4. Deploy!
+1. Go to your repository **Settings > Pages**
+2. Under **Source**, select **GitHub Actions**
+3. Push to `main` branch - the site will build and deploy automatically
 
 ### Custom Domain Setup
 
-1. In Vercel Dashboard, go to **Settings > Domains**
-2. Add your domain (e.g., `vibemotiontech.com`)
-3. Configure DNS records at your registrar (see Domain Setup Guide below)
+1. In **Settings > Pages**, add your custom domain (e.g., `vibemotiontech.com`)
+2. Configure DNS records at your registrar:
+   - Add 4 A records pointing to GitHub's IPs: `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
+   - Add CNAME for `www` pointing to `yourusername.github.io`
+3. Enable **Enforce HTTPS**
+
+See [docs/DOMAIN_SETUP.md](docs/DOMAIN_SETUP.md) for detailed instructions.
 
 ## Contributing
 
