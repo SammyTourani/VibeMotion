@@ -32,3 +32,4 @@ public/renders/
 
 # Generated compositions (runtime generated)
 src/compositions/generated/
+.vercel
