@@ -1,5 +1,5 @@
 /**
- * Type definitions for Stan Video Editor
+ * Type definitions for VibeMotion
  */
 
 export interface Word {

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // OpenAI returns words in the 'words' field with word-level timestamps
     if (transcription.words && Array.isArray(transcription.words)) {
-      transcription.words.forEach((word: any) => {
+      transcription.words.forEach((word: { word: string; start: number; end: number }) => {
         words.push({
           text: word.word,
           start: word.start,
@@ -76,12 +76,12 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(transcriptData);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[Transcribe] Error:", error);
 
     return NextResponse.json(
       {
-        error: error.message || "Transcription failed",
+        error: error instanceof Error ? error.message : "Transcription failed",
       },
       { status: 500 }
     );

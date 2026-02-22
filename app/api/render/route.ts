@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       // Cleanup temp props file
       try {
         await fs.unlink(propsPath);
-      } catch (e) {
+      } catch {
         // Ignore cleanup errors
       }
     });

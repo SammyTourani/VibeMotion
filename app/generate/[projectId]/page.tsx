@@ -184,7 +184,7 @@ export default function GeneratePage() {
           console.log("[Generate] Pipeline started:", data);
           break;
 
-        case "phase_start":
+        case "phase_start": {
           const startPhase = data.phase as string;
           setCurrentPhase(startPhase);
           updatePhase(startPhase, {
@@ -193,30 +193,34 @@ export default function GeneratePage() {
             message: data.message as string | undefined,
           });
           break;
+        }
 
-        case "phase_progress":
+        case "phase_progress": {
           const progressPhase = data.phase as string;
           updatePhase(progressPhase, {
             progress: (data.progress as number) || 0,
             message: data.message as string | undefined,
           });
           break;
+        }
 
-        case "phase_complete":
+        case "phase_complete": {
           const completePhase = data.phase as string;
           updatePhase(completePhase, {
             status: "complete",
             progress: 100,
           });
           break;
+        }
 
-        case "phase_error":
+        case "phase_error": {
           const errorPhase = data.phase as string;
           updatePhase(errorPhase, {
             status: "error",
             message: data.error as string | undefined,
           });
           break;
+        }
 
         case "transcript_ready":
           setResult((prev) => ({
@@ -481,7 +485,7 @@ export default function GeneratePage() {
                 />
               </svg>
             </div>
-            <span className="text-xl font-semibold">Stan Video</span>
+            <span className="text-xl font-semibold">VibeMotion</span>
           </Link>
 
           <div className="flex items-center gap-3">

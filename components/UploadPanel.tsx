@@ -138,7 +138,7 @@ export default function UploadPanel({
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 bg-white">
         <h1 className="text-xl font-semibold text-gray-900">
-          Stan Video Editor
+          VibeMotion
         </h1>
         <p className="text-sm text-gray-600 mt-1">
           Upload clips, chat with AI, create videos

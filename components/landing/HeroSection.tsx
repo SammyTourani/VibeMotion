@@ -237,11 +237,15 @@ export default function HeroSection() {
           className="text-5xl md:text-7xl lg:text-8xl font-bold text-center mb-6 tracking-tight"
         >
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/80">
-            Create Videos
+            Turn Raw Clips Into
           </span>
           <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-400 via-purple-400 to-cyan-400">
-            with AI
+            Viral Videos
+          </span>
+          <br />
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/60 text-4xl md:text-5xl lg:text-6xl">
+            — In Minutes
           </span>
         </motion.h1>
 
@@ -252,9 +256,9 @@ export default function HeroSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-lg md:text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto"
         >
-          Describe your video, upload assets, and watch AI generate{" "}
-          <span className="text-white">production-ready Remotion code</span> in
-          real-time.
+          VibeMotion uses AI to transcribe, analyze, and edit your iPhone
+          footage automatically.{" "}
+          <span className="text-white">No editing skills needed.</span>
         </motion.p>
 
         {/* Main input card */}

@@ -134,7 +134,7 @@ export default function UploadPage() {
                 />
               </svg>
             </div>
-            <span className="text-xl font-semibold">Stan Video</span>
+            <span className="text-xl font-semibold">VibeMotion</span>
           </Link>
 
           <div className="flex items-center gap-4">
