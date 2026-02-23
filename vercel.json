@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm exec next build --webpack",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "functions": {
     "app/api/**/*.ts": {
