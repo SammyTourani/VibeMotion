@@ -19,6 +19,7 @@ build
 
 # TypeScript build info
 tsconfig.tsbuildinfo
+*.tsbuildinfo
 
 # Test videos (too large for git)
 Testing Videos/
