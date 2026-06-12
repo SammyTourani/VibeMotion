@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "tests/**/*.ts",
+    "lib/pipeline/silence-detection.ts",
+    "lib/pipeline/transcript-validator.ts",
+    "lib/pipeline/classification-heuristics.ts",
+    "lib/pipeline/types.ts",
+    "lib/video-utils.ts",
+    "src/config.ts",
+    "src/types.ts",
+    "src/utils/segmentTranscript.ts"
+  ]
+}

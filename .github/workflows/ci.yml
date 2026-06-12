@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Typecheck and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      # pnpm 11.x crashes on Node 20 (node:sqlite); pin to Node 22.
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # --ignore-scripts skips heavy native build steps (sharp, ffmpeg-static,
+      # esbuild, protobufjs). The pure unit tests need none of them.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # Typecheck only the pure modules under test + the tests themselves.
+      # The full `tsc` has unrelated pre-existing errors in landing/sandbox UI
+      # components (framer-motion Easing types, missing monaco-editor types).
+      - name: Typecheck tested modules
+        run: pnpm exec tsc -p tsconfig.test.json
+
+      - name: Run unit tests
+        run: pnpm exec vitest run
