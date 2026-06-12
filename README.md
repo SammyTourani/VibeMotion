@@ -209,9 +209,15 @@ VibeMotion/
 
 ---
 
+## Credits
+
+VibeMotion is built on [**claude-remotion-kickstart**](https://github.com/jhartquist/claude-remotion-kickstart) by **John Hartquist** — the open-source Claude + Remotion starter that provides the Remotion component library and video-composition engine (`src/components/`, `src/compositions/`). VibeMotion adds the autonomous AI pipeline (`lib/pipeline/`), the SaaS shell (auth, dashboard, billing), and the landing/marketing layer on top.
+
+> **Remotion licensing:** Remotion itself has [separate licensing terms](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md). Companies with 3+ employees need a Remotion company license to render videos.
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE). Copyright is retained by John Hartquist for the base template and Sammy Tourani for the VibeMotion additions.
 
 ---
 
