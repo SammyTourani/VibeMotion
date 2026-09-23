@@ -1,2 +1,9 @@
-onlyBuiltDependencies:
-  - esbuild
+# Build scripts are opt-in. None of these are needed in the browser:
+# onnxruntime-node is transformers.js's Node backend (we only ship the web
+# backend), and protobufjs's postinstall is a version check.
+allowBuilds:
+  onnxruntime-node: false
+  protobufjs: false
+minimumReleaseAgeExclude:
+  - '@mediabunny/aac-encoder@1.59.1'
+  - mediabunny@1.59.1
