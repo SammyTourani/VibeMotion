@@ -41,8 +41,17 @@ export function cropRect(srcW: number, srcH: number, aspect: Aspect, cx: number,
   return { x, y, w, h };
 }
 
-/** Normalised deadzone for the camera, scaled to how much of the frame the crop shows. */
-export function deadzoneFor(srcW: number, srcH: number, aspect: Aspect) {
+/**
+ * Camera limits for an aspect: the deadzone (normalised, scaled to how much
+ * of the frame the crop shows) and the crop's half-size for keeping the face
+ * in frame, allowing for the tightest punch-in.
+ */
+export function deadzoneFor(srcW: number, srcH: number, aspect: Aspect, maxZoom = 1.35) {
   const base = baseCrop(srcW, srcH, aspect);
-  return { deadzoneX: (0.09 * base.w) / srcW, deadzoneY: (0.07 * base.h) / srcH };
+  return {
+    deadzoneX: (0.09 * base.w) / srcW,
+    deadzoneY: (0.07 * base.h) / srcH,
+    halfW: base.w / srcW / 2 / maxZoom,
+    halfH: base.h / srcH / 2 / maxZoom,
+  };
 }

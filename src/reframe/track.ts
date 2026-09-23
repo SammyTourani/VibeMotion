@@ -9,6 +9,9 @@ export interface TrackPoint {
   t: number;
   x: number;
   y: number;
+  /** Face width, normalised to the frame width. */
+  w: number;
+  /** Face height, normalised to the frame height. */
   h: number;
 }
 
@@ -43,7 +46,7 @@ export function primaryTrack(analysis: FaceAnalysis, maxGap = 1.2): TrackPoint[]
           bestD = d;
         }
       }
-      const point = { t: frame.t, x: cx, y: cy, h: f.h, area: f.w * f.h, score: f.score };
+      const point = { t: frame.t, x: cx, y: cy, w: f.w, h: f.h, area: f.w * f.h, score: f.score };
       if (best) {
         best.points.push(point);
         best.last = { ...f, t: frame.t };
@@ -58,7 +61,7 @@ export function primaryTrack(analysis: FaceAnalysis, maxGap = 1.2): TrackPoint[]
   }
   if (tracks.length === 0) return null;
   tracks.sort((a, b) => b.weight - a.weight);
-  return tracks[0]!.points.map(({ t, x, y, h }) => ({ t, x, y, h }));
+  return tracks[0]!.points.map(({ t, x, y, w, h }) => ({ t, x, y, w, h }));
 }
 
 /** Target position at time t: interpolated, holding the last known position through gaps. */
@@ -78,7 +81,7 @@ export function targetAt(points: readonly TrackPoint[], t: number): TrackPoint {
   // Across a long gap, hold rather than glide through where nobody was.
   if (b.t - a.t > 1.5) return a;
   const k = (t - a.t) / (b.t - a.t);
-  return { t, x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, h: a.h + (b.h - a.h) * k };
+  return { t, x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, w: a.w + (b.w - a.w) * k, h: a.h + (b.h - a.h) * k };
 }
 
 /** One step of a critically damped spring (exact, stable for any dt). */
@@ -102,9 +105,23 @@ export interface CameraOptions {
   /** Deadzone half-width, normalised to the source frame. */
   deadzoneX: number;
   deadzoneY: number;
-  /** Spring stiffness, rad/s. ~3 settles in about a second. */
+  /**
+   * Half the visible crop, normalised. When given, the camera never lets the
+   * face leave the frame, however fast it moves (an operator wouldn't).
+   */
+  halfW?: number;
+  halfH?: number;
+  /** Spring stiffness, rad/s. ~5 settles in about 0.8 s. */
   omega?: number;
   rate?: number;
+}
+
+/** Clamp c so that a box of size `size` centred at `target` stays inside a window of half-size `half` centred at c. */
+function keepInside(c: number, target: number, size: number, half: number | undefined): number {
+  if (half === undefined) return c;
+  const slack = half - size / 2 - size * 0.15;
+  if (slack <= 0) return target;
+  return Math.min(Math.max(c, target - slack), target + slack);
 }
 
 export function buildCameraPath(
@@ -114,7 +131,7 @@ export function buildCameraPath(
   opts: CameraOptions,
 ): CameraPath {
   const rate = opts.rate ?? 30;
-  const omega = opts.omega ?? 3.2;
+  const omega = opts.omega ?? 5;
   const n = Math.max(1, Math.ceil(duration * rate) + 1);
   const xs = new Float32Array(n);
   const ys = new Float32Array(n);
@@ -148,6 +165,18 @@ export function buildCameraPath(
       if (i > 0) {
         [x, vx] = springStep(x, vx, gx, omega, dt);
         [y, vy] = springStep(y, vy, gy, omega, dt);
+        // Hard limit: the face stays in frame. Carry the forced motion as
+        // velocity so the spring continues smoothly from there.
+        const cx = keepInside(x, tg.x, tg.w, opts.halfW);
+        const cy = keepInside(y, tg.y, tg.h, opts.halfH);
+        if (cx !== x) {
+          vx = (cx - xs[i - 1]!) / dt;
+          x = cx;
+        }
+        if (cy !== y) {
+          vy = (cy - ys[i - 1]!) / dt;
+          y = cy;
+        }
       }
     }
     xs[i] = x;

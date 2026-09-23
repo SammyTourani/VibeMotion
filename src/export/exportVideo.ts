@@ -8,11 +8,14 @@
 // and is drawn by the same compositor as the preview.
 
 import {
+  ALL_FORMATS,
   AudioBufferSink,
   AudioBufferSource,
+  BufferSource,
   BufferTarget,
   CanvasSink,
   CanvasSource,
+  Input,
   Mp4OutputFormat,
   Output,
   Quality,
@@ -105,6 +108,73 @@ async function pickAudioCodec(sampleRate: number, warnings: string[]): Promise<A
     return 'opus';
   }
   throw new Error("This browser can't encode audio for MP4.");
+}
+
+const delayCache = new Map<string, number>();
+
+/**
+ * Audio encoders add "priming" samples before the first real one (Apple's
+ * AAC encoder adds 2112, about 44 ms) and WebCodecs doesn't say how many.
+ * Left alone, the audio plays that much late. We measure the delay once per
+ * encoder: encode a short tone burst, decode it back, and see where it
+ * lands. The export then starts its audio at -delay, and the muxer writes an
+ * MP4 edit list that trims the priming off, so sound and picture line up.
+ */
+export async function measureEncoderDelay(codec: AudioCodec, fs: number): Promise<number> {
+  const key = `${codec}|${fs}`;
+  const hit = delayCache.get(key);
+  if (hit !== undefined) return hit;
+  let delay = 0;
+  let input: Input | null = null;
+  try {
+    const target = new BufferTarget();
+    const out = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target });
+    const src = new AudioBufferSource({ codec, quality: new Quality('high') });
+    out.addAudioTrack(src);
+    await out.start();
+    const n = Math.round(fs * 0.5);
+    const at = Math.round(fs * 0.1);
+    const len = Math.round(fs * 0.004);
+    const buf = new AudioBuffer({ length: n, numberOfChannels: 2, sampleRate: fs });
+    for (let c = 0; c < 2; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i < len; i++) {
+        const w = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (len - 1));
+        d[at + i] = 0.8 * w * Math.sin((2 * Math.PI * 3000 * i) / fs);
+      }
+    }
+    await src.add(buf);
+    src.close();
+    await out.finalize();
+    input = new Input({ source: new BufferSource(target.buffer!), formats: ALL_FORMATS });
+    const track = await input.getPrimaryAudioTrack();
+    if (track) {
+      // Envelope peak of the decoded burst.
+      let best = -1;
+      let bestV = 0;
+      for await (const wb of new AudioBufferSink(track).buffers()) {
+        const d = wb.buffer.getChannelData(0);
+        const base = Math.round(wb.timestamp * fs);
+        for (let i = 0; i < d.length; i++) {
+          const v = Math.abs(d[i]!);
+          if (v > bestV) {
+            bestV = v;
+            best = base + i;
+          }
+        }
+      }
+      if (best >= 0 && bestV > 0.1) delay = best - (at + Math.round(len / 2));
+    }
+  } catch {
+    delay = 0;
+  } finally {
+    input?.dispose();
+  }
+  // Snap within a few samples of the common values; distrust anything wild.
+  if (delay < 0 || delay > fs * 0.1) delay = 0;
+  for (const known of [1024, 2048, 2112, 312]) if (Math.abs(delay - known) <= 24) delay = known;
+  delayCache.set(key, delay);
+  return delay;
 }
 
 async function resample(channels: Float32Array[], from: number, to: number): Promise<Float32Array[]> {
@@ -216,6 +286,7 @@ export async function exportMp4(o: ExportOptions): Promise<ExportResult> {
 
   const videoCodec = await pickVideoCodec(W, H, fps, warnings);
   const audioCodec = await pickAudioCodec(audio.sampleRate, warnings);
+  const primingSamples = await measureEncoderDelay(audioCodec, audio.sampleRate);
 
   await loadStyleFonts(project.captions.style);
   const canvas = document.createElement('canvas');
@@ -235,7 +306,10 @@ export async function exportMp4(o: ExportOptions): Promise<ExportResult> {
     keyFrameInterval: 2,
   });
   output.addVideoTrack(videoSource, { frameRate: fps });
-  const audioSource = new AudioBufferSource({ codec: audioCodec, quality: new Quality('high') });
+  const audioSource = new AudioBufferSource(
+    { codec: audioCodec, quality: new Quality('high') },
+    { startTimestamp: -primingSamples / audio.sampleRate },
+  );
   output.addAudioTrack(audioSource);
   output.setMetadataTags({ title: project.source.name.replace(/\.[^.]+$/, ''), comment: 'Edited with VibeMotion' });
 

@@ -22,7 +22,7 @@ function Timecode() {
     });
   }, []);
   return (
-    <span className="tc tnum" aria-label="Output time">
+    <span className="tc tnum" aria-label="Output time" data-out-duration={edl?.outDuration.toFixed(4)}>
       <span ref={ref}>0:00.0</span>
       <span className="tc-total"> / {timecode(edl?.outDuration ?? 0)}</span>
     </span>

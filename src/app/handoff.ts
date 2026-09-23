@@ -16,7 +16,7 @@ export function takePending(): Pending | null {
 }
 
 export const SAMPLE_URL = `${import.meta.env.BASE_URL}sample/sample.mp4`;
-export const SAMPLE_NAME = 'vibemotion-sample.mp4';
+export const SAMPLE_NAME = 'sample-clip.mp4';
 
 export async function fetchSample(): Promise<File> {
   const res = await fetch(SAMPLE_URL);
