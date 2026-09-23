@@ -1,9 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-
-function App() {
-  return <p>VibeMotion</p>;
-}
+import './styles/base.css';
+import { App } from './app/App';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

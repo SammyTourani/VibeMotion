@@ -35,10 +35,27 @@ function preloadUiFont(): Plugin {
   };
 }
 
+/**
+ * transformers.js points ONNX Runtime at jsDelivr for its WebAssembly (5.5 MB
+ * brotli, cached immutably), but Vite still copies the 27 MB fallback file
+ * that onnxruntime-web references. It is never fetched; keep it out of dist.
+ */
+function dropUnusedOrtWasm(): Plugin {
+  return {
+    name: 'vibemotion:drop-unused-ort-wasm',
+    apply: 'build',
+    generateBundle(_opts, bundle) {
+      for (const key of Object.keys(bundle)) {
+        if (/ort-wasm[^/]*\.wasm$/.test(key)) delete bundle[key];
+      }
+    },
+  };
+}
+
 export default defineConfig({
   base: '/VibeMotion/',
-  plugins: [react(), preloadUiFont()],
-  worker: { format: 'es' },
+  plugins: [react(), preloadUiFont(), dropUnusedOrtWasm()],
+  worker: { format: 'es', plugins: () => [dropUnusedOrtWasm()] },
   build: {
     target: 'es2022',
     sourcemap: false,
