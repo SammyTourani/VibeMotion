@@ -114,8 +114,12 @@ export async function openFile(file: File) {
     void loadStyleFonts(fresh.captions.style);
     await analyzeAudio(token);
     if (token !== openToken) return;
-    if (!getState().restore) void transcribe();
-    void analyzeFaces();
+    // With a restore offer pending, wait for the user's answer
+    // (acceptRestore/declineRestore start whatever is still missing).
+    if (!getState().restore) {
+      if (!project()?.transcript) void transcribe();
+      if (!project()?.faces) void analyzeFaces();
+    }
   } catch (err) {
     if (token !== openToken) return;
     setState({ phase: 'error', openError: err instanceof MediaError ? err.message : errorText(err) });
@@ -175,6 +179,7 @@ export async function acceptRestore() {
 export function declineRestore() {
   setState({ restore: null });
   void transcribe();
+  if (!project()?.faces) void analyzeFaces();
 }
 
 // ---------- transcription ----------
@@ -182,7 +187,7 @@ export function declineRestore() {
 export async function transcribe() {
   const s = getState();
   const media = s.media;
-  if (!media) return;
+  if (!media || s.jobs.asr.state === 'running') return;
   if (!s.analysis) {
     // Audio analysis still running: wait for it.
     await new Promise<void>((resolve) => {
@@ -207,17 +212,22 @@ export async function transcribe() {
     detail: `${model.label} model, up to ${model.downloadMB[backend]} MB the first time. Your browser keeps it after that.`,
     error: undefined,
   });
+  // Files start at different moments; the measured model size keeps the bar
+  // from jumping backwards as each one begins.
+  const expected = Math.max(1, (model.downloadMB[backend] - 5.5) * 1e6);
   try {
     asrLoading = true;
     await asr.load(
       prefs.model,
       backend,
-      (loaded, total) =>
+      (loaded, total) => {
+        const denom = Math.max(total, expected);
         setJob('asr', {
           label: 'Downloading the speech model',
-          progress: total ? loaded / total : null,
-          detail: `${(loaded / 1e6).toFixed(0)} of ${(total / 1e6).toFixed(0)} MB. Your browser keeps it after this.`,
-        }),
+          progress: Math.min(1, loaded / denom),
+          detail: `${(loaded / 1e6).toFixed(0)} of ${(denom / 1e6).toFixed(0)} MB. Your browser keeps it after this.`,
+        });
+      },
       (message) => setJob('asr', { label: message, progress: null, detail: 'Compiling for your GPU, a few seconds.' }),
     );
     asrLoading = false;
@@ -312,7 +322,7 @@ export function setAsrPrefs(patch: Partial<ReturnType<typeof getState>['prefs']>
 export async function analyzeFaces() {
   const s = getState();
   const media = s.media;
-  if (!media) return;
+  if (!media || s.jobs.faces.state === 'running') return;
   facesAbort?.abort();
   const abort = new AbortController();
   facesAbort = abort;

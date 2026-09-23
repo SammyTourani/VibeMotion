@@ -29,11 +29,31 @@ async function load(req: Extract<AsrRequest, { type: 'load' }>) {
     await asr.dispose();
     asr = null;
   }
+  // Progress from the files actually being loaded. (transformers.js 4.3's own
+  // progress_total resolves per-module dtypes to the fp32 encoder when it
+  // estimates sizes, so its total overstates an fp16 load by ~80 MB.)
+  const files = new Map<string, { loaded: number; total: number }>();
+  const report = () => {
+    let loaded = 0;
+    let total = 0;
+    for (const f of files.values()) {
+      loaded += f.loaded;
+      total += f.total;
+    }
+    post({ type: 'download', loaded, total });
+  };
   const created = await pipeline('automatic-speech-recognition', req.repo, {
     device: req.device,
     dtype: req.dtype as never,
     progress_callback: (p) => {
-      if (p.status === 'progress_total') post({ type: 'download', loaded: p.loaded, total: p.total });
+      if (p.status === 'progress') {
+        files.set(p.file, { loaded: p.loaded, total: p.total });
+        report();
+      } else if (p.status === 'done') {
+        const f = files.get(p.file);
+        if (f) f.loaded = f.total;
+        report();
+      }
     },
   });
   asr = created as AutomaticSpeechRecognitionPipeline;
