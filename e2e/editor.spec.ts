@@ -117,6 +117,79 @@ test.describe.serial('editor, with the sample clip', () => {
     expect(consoleErrors).toEqual([]);
   });
 
+  test('opens a file from the landing page, cuts on the timeline, round-trips a project file, cancels and exports square 720p', async ({ page, consoleErrors }) => {
+    await page.goto(BASE);
+    // "Drop a clip" opens a file picker; hand it the sample file directly.
+    const sample = join(process.cwd(), 'public/sample/sample.mp4');
+    await page.locator('input[type=file]').setInputFiles(sample);
+    await expect(page).toHaveURL(/#\/edit/);
+    const restore = page.getByRole('button', { name: 'Restore your edits' });
+    const words = page.locator('.transcript-body .w').first();
+    await expect(restore.or(words)).toBeVisible({ timeout: 10 * 60_000 });
+    if (await restore.isVisible()) await page.getByRole('button', { name: 'Start over' }).click();
+    await expect(words).toBeVisible({ timeout: 10 * 60_000 });
+    await expect(page.locator('.doc-name')).toHaveText('sample.mp4');
+    const before = await outDuration(page);
+
+    // Drag across the waveform, then cut that stretch.
+    const canvas = page.locator('.timeline-canvas');
+    const box = (await canvas.boundingBox())!;
+    const y = box.y + 60;
+    await page.mouse.move(box.x + box.width * 0.3, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.42, y, { steps: 8 });
+    await page.mouse.up();
+    await page.locator('.range-actions').getByRole('button', { name: 'Cut' }).click();
+    const after = await outDuration(page);
+    expect(after).toBeLessThan(before - 1);
+
+    // Save the project, undo the cut, then open the project file again.
+    const exportButton = page.getByRole('button', { name: 'Export', exact: true });
+    await exportButton.click();
+    await page.getByRole('button', { name: 'Save project' }).click();
+    const saved = await waitForDownload(page, 0);
+    expect(saved.name).toBe('sample-vibemotion.vibemotion.json');
+    expect(JSON.parse(saved.bytes.toString()).rangeOps).toHaveLength(1);
+    const projectFile = saveArtifact('exports/sample-vibemotion.vibemotion.json', saved.bytes);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Undo' }).click();
+    expect(Math.abs((await outDuration(page)) - before)).toBeLessThan(0.01);
+    await exportButton.click();
+    await page.locator('input[type=file][accept*=json]').setInputFiles(projectFile);
+    await expect(page.getByText('Project opened.')).toBeVisible();
+    expect(Math.abs((await outDuration(page)) - after)).toBeLessThan(0.01);
+    await page.keyboard.press('Escape');
+
+    // The safe-zone overlay, for a look.
+    await page.getByRole('button', { name: 'Show where app UI covers the video' }).click();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: join(ARTIFACTS, 'screens/editor-safezone.png') });
+    await page.getByRole('button', { name: 'Show where app UI covers the video' }).click();
+
+    // Square, 720p. Start an export and cancel it first.
+    await page.getByRole('radio', { name: /^1:1/ }).click();
+    await exportButton.click();
+    await page.getByRole('radio', { name: '720p' }).click();
+    await page.getByRole('button', { name: 'Export MP4' }).click();
+    // Cancel partway through the video, not just the audio.
+    await expect(page.getByText(/Rendering frame [1-9]\d* of/)).toBeVisible({ timeout: 60_000 });
+    await page.getByRole('button', { name: 'Cancel export' }).click();
+    await expect(page.getByRole('button', { name: 'Export MP4' })).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __vmDownloads: unknown[] }).__vmDownloads.length)).toBe(1);
+    await page.getByRole('button', { name: 'Export MP4' }).click();
+    const mp4 = await waitForDownload(page, 1);
+    expect(mp4.name).toBe('sample-vibemotion.mp4');
+    const file = saveArtifact(`exports/square-720.mp4`, mp4.bytes);
+    const probe = ffprobe(file);
+    const video = probe.streams.find((s) => s.codec_type === 'video')!;
+    expect(video.codec_name).toBe('h264');
+    expect(video.width).toBe(720);
+    expect(video.height).toBe(720);
+    expect(Math.abs(Number(probe.format.duration) - (await outDuration(page)))).toBeLessThanOrEqual(0.1);
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', '2', '-i', file, '-frames:v', '1', join(ARTIFACTS, 'exports/square-frame.png')]);
+    expect(consoleErrors).toEqual([]);
+  });
+
   test('restores edits for the same file, and lays out on smaller screens', async ({ page, consoleErrors }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto(`${BASE}#/edit`);

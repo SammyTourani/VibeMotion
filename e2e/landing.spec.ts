@@ -21,3 +21,17 @@ test('landing page loads cleanly at desktop and phone widths', async ({ page, co
   expect(overflow).toBeLessThanOrEqual(0);
   expect(consoleErrors).toEqual([]);
 });
+
+test('landing page at 360 px and with reduced motion', async ({ page, consoleErrors }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 360, height: 780 });
+  await page.goto(BASE);
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: join(ARTIFACTS, 'screens/landing-360-reduced.png') });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+  // Reduced motion: the headline is set at its final width, not animated.
+  const stretch = await page.locator('.lp-h1').evaluate((el) => getComputedStyle(el).fontStretch);
+  expect(stretch).toBe('78%');
+  expect(consoleErrors).toEqual([]);
+});
