@@ -879,6 +879,50 @@ select {
   box-shadow: inset 0 0 0 1px rgba(255, 61, 139, 0.45);
 }
 
+.clips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.clip {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--well);
+  border: 1px solid var(--hairline);
+}
+.clip.is-on {
+  border-color: var(--cyan);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+.clip-time {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.clip-hook {
+  font-weight: 700;
+  font-size: 14.5px;
+  line-height: 1.35;
+}
+.clip-meta {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  font-size: 13px;
+}
+.clip-meta .summary-k {
+  margin-right: 6px;
+}
+.clip-again {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 /* ---------- Timeline ---------- */
 
 .timeline {

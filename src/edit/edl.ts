@@ -31,6 +31,8 @@ export interface EdlInput {
   /** Voiced spans between words to cut (only when that option is on). */
   untranscribed: readonly Interval[];
   rangeOps: readonly RangeOp[];
+  /** Keep only this part of the source (a chosen clip), if set. */
+  clip?: Interval | null;
 }
 
 export interface Edl {
@@ -106,6 +108,13 @@ export function buildEdl(input: EdlInput): Edl {
     if (!isCut[i]) keptWords.push({ start: words[i]!.start, end: words[i]!.end });
   }
   cuts = subtract(cuts, keptWords);
+  // A chosen clip trims everything outside it, kept words included.
+  if (input.clip && input.clip.end > input.clip.start) {
+    cuts = union(cuts, [
+      { start: 0, end: Math.max(0, input.clip.start) },
+      { start: Math.min(duration, input.clip.end), end: duration },
+    ]);
+  }
   cuts = clampTo(cuts, 0, duration).filter((c) => c.end - c.start >= MIN_CUT);
 
   // Drop kept slivers that hold no word; they would flash on screen.

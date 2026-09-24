@@ -140,5 +140,7 @@ export interface Project {
   frame: FrameSettings;
   audio: AudioSettings;
   faces: FaceAnalysis | null;
+  /** A chosen clip (source seconds): everything outside it is cut. */
+  clip?: Interval | null;
   updatedAt: number;
 }

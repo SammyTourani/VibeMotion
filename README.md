@@ -17,7 +17,9 @@ VibeMotion is a short-form video editor that runs entirely on your device. There
 - **Punches in** on alternate segments to hide jump cuts.
 - **Captions** word by word in six styles (Punch, Karaoke, Box, Clean, Story, Terminal), each with its own typeface, kept clear of TikTok/Reels/Shorts UI. Size, position, colours, words per line and per-word emphasis are adjustable.
 - **Levels the audio** to −14 LUFS (ITU-R BS.1770, the level TikTok, Reels and YouTube play at) with a true-peak limiter at −1 dBTP, joins cuts with 10 ms crossfades, and can add a music bed that ducks under speech.
+- **Suggests clips** from longer videos, if you ask: a small language model (Qwen3.5 0.8B via WebLLM, about 450 MB, downloaded once) reads the transcript on your GPU and proposes up to three 20 to 60 second clips with a hook for each, plus a title and hashtags. Pick one and everything outside it is cut. The model only picks sentence ranges; the times come from the transcript, so it can't invent a timestamp.
 - **Exports** an MP4 (H.264 + AAC) at 1080p or 720p, plus SRT, VTT and TXT captions in edited time, and a project file you can reopen. Edits autosave in the browser.
+- **Installs** as a web app, and the page opens offline after your first visit.
 
 ![Six caption styles, animated on the landing page by the same renderer the export uses](docs/captions.jpg)
 
@@ -45,7 +47,7 @@ A few details that took care:
 
 ## Where your video goes
 
-Nowhere. Everything happens in the browser tab. The page downloads its models once: Whisper from Hugging Face (about 120 MB for the Fast model on most GPUs), the ONNX Runtime WebAssembly module and MediaPipe's runtime from jsDelivr, and the face model from Google. Browsers cache them. None of these requests carries your video, audio or words.
+Nowhere. Everything happens in the browser tab. The page downloads its models once: Whisper from Hugging Face (about 120 MB for the Fast model on most GPUs), the ONNX Runtime WebAssembly module and MediaPipe's runtime from jsDelivr, and the face model from Google. If you ask for clip suggestions, the language model comes from Hugging Face and its WebGPU library from the WebLLM project on GitHub. Browsers cache them. None of these requests carries your video, audio or words.
 
 ## Browser support
 
@@ -57,6 +59,7 @@ VibeMotion feature-detects what it needs and says what will be slower or missing
 | Decoding and export | WebCodecs with an H.264 encoder | Export isn't available (the editor says so) |
 | AAC audio | WebCodecs AAC encoder | A WebAssembly AAC encoder (about 1 MB) takes over |
 | Face tracking | WebGL and WebAssembly | The crop stays centered; manual framing still works |
+| Clip suggestions | WebGPU with 16-bit floats (`shader-f16`) | The option is hidden |
 | Autosave | IndexedDB | Edits aren't kept between visits |
 
 Built and tested in Chrome on macOS. HEVC (iPhone) clips open where the browser can decode HEVC: Safari, and Chrome on a Mac. On Windows, install Microsoft's HEVC Video Extensions or export from Photos as "Most Compatible".
@@ -77,7 +80,7 @@ pnpm preview      # http://localhost:5312/VibeMotion/
 pnpm e2e          # build + Playwright end-to-end tests in Google Chrome
 ```
 
-The end-to-end tests drive real Google Chrome (Playwright's bundled Chromium has no H.264 or AAC encoder) and check exports with `ffprobe`, so they need Chrome and ffmpeg installed. The first run downloads the Whisper model into a persistent profile (`e2e/.artifacts/profile`, or set `VM_PW_PROFILE`). `VM_E2E_WASM=1` also runs the WebAssembly transcription test.
+The end-to-end tests drive real Google Chrome (Playwright's bundled Chromium has no H.264 or AAC encoder) and check exports with `ffprobe`, so they need Chrome and ffmpeg installed. The first run downloads the Whisper model into a persistent profile (`e2e/.artifacts/profile`, or set `VM_PW_PROFILE`). `VM_E2E_WASM=1` also runs the WebAssembly transcription test, and `VM_E2E_CLIPS=1` the clip suggestion test (it generates a 90-second talk with macOS `say` and downloads the 453 MB language model once).
 
 Scripts in `scripts/`:
 
@@ -94,6 +97,7 @@ src/
   asr/        Whisper worker, client, model table, windowing
   captions/   layout, styles, fonts, canvas renderer
   reframe/    face detection, camera path, crop geometry
+  clips/      clip suggestions: WebLLM worker, prompt and parser  (parser tested)
   audio/      loudness, true-peak limiter, splicing, ducking     (pure, tested)
   media/      probe and decode (Mediabunny)
   export/     MP4 export, SRT/VTT/TXT

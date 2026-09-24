@@ -23,6 +23,7 @@ import { StyleSwatch } from './StyleSwatch';
 import { ASR_MODELS, LANGUAGES, type AsrModelId } from '../asr/models';
 import { duration } from '../lib/format';
 import { FrameMap } from './FrameMap';
+import { ClipFinder } from './ClipFinder';
 
 const TABS: { id: InspectorTab; label: string }[] = [
   { id: 'tighten', label: 'Tighten' },
@@ -95,6 +96,8 @@ function TightenTab() {
           </div>
         </div>
       ) : null}
+
+      <ClipFinder />
 
       <div className="group">
         <Toggle label="Remove pauses" checked={t.removeSilences} onChange={(v) => setTighten({ removeSilences: v })} />

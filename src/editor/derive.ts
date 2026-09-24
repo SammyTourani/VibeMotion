@@ -43,27 +43,32 @@ const untranscribedFor = memo(
     on ? untranscribedSounds(words, duration, (s, e) => voicedSpan(db, threshold, s, e)) : NO_INTERVALS,
 );
 
-const edlFor = memo(
-  (
-    duration: number,
-    words: readonly Word[],
-    wordEdits: Readonly<Record<string, 'cut' | 'keep'>>,
-    fillerIds: ReadonlySet<string>,
-    silences: readonly Interval[],
-    padding: number,
-    untranscribed: readonly Interval[],
-    rangeOps: readonly RangeOp[],
-  ) => buildEdl({ duration, words, wordEdits, fillerIds, silences, padding, untranscribed, rangeOps }),
-);
+const buildFor = (
+  duration: number,
+  words: readonly Word[],
+  wordEdits: Readonly<Record<string, 'cut' | 'keep'>>,
+  fillerIds: ReadonlySet<string>,
+  silences: readonly Interval[],
+  padding: number,
+  untranscribed: readonly Interval[],
+  rangeOps: readonly RangeOp[],
+  clip: Interval | null,
+) => buildEdl({ duration, words, wordEdits, fillerIds, silences, padding, untranscribed, rangeOps, clip });
+const edlFor = memo(buildFor);
+// A second cache for the EDL ignoring the chosen clip, so asking for both
+// doesn't make them evict each other.
+const fullEdlFor = memo(buildFor);
 
-export function deriveEdl(p: Project, a: Analysis | null): Edl {
+/** The EDL; `withClip: false` ignores the chosen clip (the whole video). */
+export function deriveEdl(p: Project, a: Analysis | null, withClip = true): Edl {
   const words = p.transcript?.words ?? NO_WORDS;
   const t = p.tighten;
   const vad = a ? vadFor(a.db, t.sensitivity) : null;
   const silences = a && vad && t.removeSilences ? silencesFor(a.db, vad.threshold, t.minSilence) : NO_INTERVALS;
   const fillerIds = fillersFor(words, t.fillers, t.removeFillers);
   const unt = a && vad ? untranscribedFor(words, p.source.duration, a.db, vad.threshold, t.cutUntranscribed) : NO_INTERVALS;
-  return edlFor(p.source.duration, words, p.wordEdits, fillerIds, silences, t.padding, unt, p.rangeOps);
+  const clip = withClip ? (p.clip ?? null) : null;
+  return (withClip ? edlFor : fullEdlFor)(p.source.duration, words, p.wordEdits, fillerIds, silences, t.padding, unt, p.rangeOps, clip);
 }
 
 /** All pauses VAD found, regardless of settings (for the timeline and transcript). */

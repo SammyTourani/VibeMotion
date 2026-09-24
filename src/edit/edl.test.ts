@@ -128,6 +128,14 @@ describe('buildEdl', () => {
     expect(e.segmentAtSrc(2.5)).toBe(-1);
   });
 
+  it('keeps only a chosen clip, trimming words outside it', () => {
+    const words = [W('a', 'before', 1, 2), W('b', 'inside', 4, 5), W('c', 'after', 8, 9)];
+    const e = buildEdl(input({ words, clip: { start: 3.5, end: 6 } }));
+    expect(e.kept).toEqual([{ start: 3.5, end: 6 }]);
+    expect(e.wordStatus).toEqual(['removed', 'kept', 'removed']);
+    expect(e.outDuration).toBeCloseTo(2.5);
+  });
+
   it('handles everything being cut', () => {
     const e = buildEdl(input({ rangeOps: [{ kind: 'cut', start: 0, end: 10 }] }));
     expect(e.kept).toEqual([]);
